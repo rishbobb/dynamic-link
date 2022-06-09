@@ -29,8 +29,14 @@ db.run(sql, [], (err) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+var port = 80;
+
+if (process.env.PORT) {
+  port = process.env.PORT;
+}
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
 app.get("/link/:url", (req, res) => {
@@ -78,6 +84,63 @@ app.get("/create", (req, res) => {
       name: req.query.name,
       url: `https://${req.get("host")}/link/${req.query.url}`,
       deepurl: req.query.deepurl,
+    });
+  }
+});
+
+app.get("/edit", (req, res) => {
+  if (useToken) {
+    if (req.query.token == token) {
+      db.all("SELECT name FROM dynlinks", (err, rows) => {
+        var redirecturl = "";
+        rows.forEach((row) => {
+          if (row.name == req.query.name) {
+            redirecturl = row.name;
+          }
+        });
+        if (redirecturl != "") {
+          var dbrun = db.prepare(
+            "UPDATE dynlinks SET deepurl = ? WHERE name = ?"
+          );
+          dbrun.run(req.query.deepurl, req.query.name);
+          dbrun.finalize();
+          res.json({
+            status: "SUCCESS",
+            name: req.query.name,
+            deepurl: req.query.deepurl,
+          });
+        } else {
+          res.sendStatus(404);
+        }
+      });
+    } else {
+      res.json({
+        status: "FAIL",
+        error: "INCORRECT TOKEN",
+      });
+    }
+  } else {
+    db.all("SELECT name FROM dynlinks", (err, rows) => {
+      var redirecturl = "";
+      rows.forEach((row) => {
+        if (row.name == req.query.name) {
+          redirecturl = row.name;
+        }
+      });
+      if (redirecturl != "") {
+        var dbrun = db.prepare(
+          "UPDATE dynlinks SET deepurl = ? WHERE name = ?"
+        );
+        dbrun.run(req.query.deepurl, req.query.name);
+        dbrun.finalize();
+        res.json({
+          status: "SUCCESS",
+          name: req.query.name,
+          deepurl: req.query.deepurl,
+        });
+      } else {
+        res.sendStatus(404);
+      }
     });
   }
 });
