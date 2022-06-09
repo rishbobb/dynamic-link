@@ -1,6 +1,15 @@
 var express = require("express");
 const sqlite3 = require("sqlite3");
 var app = express();
+require("dotenv").config();
+
+var useToken = false;
+var token = "";
+
+if (process.env.TOKEN) {
+  useToken = true;
+  token = process.env.TOKEN;
+}
 
 var db = new sqlite3.Database("database.db", (err) => {
   if (err) {
@@ -41,14 +50,34 @@ app.get("/link/:url", (req, res) => {
 });
 
 app.get("/create", (req, res) => {
-  var dbrun = db.prepare(`INSERT INTO dynlinks VALUES (?, ?, ?)`);
+  if (useToken) {
+    if (req.query.token == token) {
+      var dbrun = db.prepare(`INSERT INTO dynlinks VALUES (?, ?, ?)`);
 
-  dbrun.run(req.query.name, req.query.url, req.query.deepurl);
-  dbrun.finalize();
-  res.json({
-    status: "SUCCESS",
-    name: req.query.name,
-    url: `https://${req.get("host")}/link/${req.query.url}`,
-    deepurl: req.query.deepurl,
-  });
+      dbrun.run(req.query.name, req.query.url, req.query.deepurl);
+      dbrun.finalize();
+      res.json({
+        status: "SUCCESS",
+        name: req.query.name,
+        url: `https://${req.get("host")}/link/${req.query.url}`,
+        deepurl: req.query.deepurl,
+      });
+    } else {
+      res.json({
+        status: "FAIL",
+        error: "INCORRECT TOKEN",
+      });
+    }
+  } else {
+    var dbrun = db.prepare(`INSERT INTO dynlinks VALUES (?, ?, ?)`);
+
+    dbrun.run(req.query.name, req.query.url, req.query.deepurl);
+    dbrun.finalize();
+    res.json({
+      status: "SUCCESS",
+      name: req.query.name,
+      url: `https://${req.get("host")}/link/${req.query.url}`,
+      deepurl: req.query.deepurl,
+    });
+  }
 });
