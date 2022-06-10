@@ -147,6 +147,6 @@ app.get("/edit", (req, res) => {
 
 app.get("/list", (req, res) => {
   db.all("SELECT name url deepurl FROM dynlinks", (err, rows) => {
-    res.json(rows);
+    res.json({ rows });
   });
 });
